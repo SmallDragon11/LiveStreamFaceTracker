@@ -4,6 +4,7 @@
 
 import cv2
 import numpy as np
+from collections import defaultdict
 
 __all__ = ["vis"]
 
@@ -48,8 +49,7 @@ def get_color(idx):
 
     return color
 
-
-def plot_tracking(image, tlwhs, obj_ids, scores=None, frame_id=0, fps=0., ids2=None):
+def plot_tracking(image, tlwhs, obj_ids, scores=None, frame_id=0, fps=0., ids2=None, visible=defaultdict(bool)):
     im = np.ascontiguousarray(np.copy(image))
     im_h, im_w = im.shape[:2]
 
@@ -67,6 +67,8 @@ def plot_tracking(image, tlwhs, obj_ids, scores=None, frame_id=0, fps=0., ids2=N
                 (0, int(15 * text_scale)), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), thickness=2)
 
     for i, tlwh in enumerate(tlwhs):
+        if not visible[obj_ids[i]]:
+            continue
         x1, y1, w, h = tlwh
         intbox = tuple(map(int, (x1, y1, x1 + w, y1 + h)))
         obj_id = int(obj_ids[i])

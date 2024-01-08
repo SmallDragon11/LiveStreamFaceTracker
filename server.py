@@ -17,6 +17,7 @@ from yolox.tracking_utils.timer import Timer
 ##########smallJames###########
 from flask_socketio import SocketIO
 
+from collections import defaultdict
 
 #Initialize the Flask app
 app = Flask(__name__)
@@ -24,6 +25,19 @@ app.config['SECRET_KEY'] = os.urandom(24)
 camera = cv2.VideoCapture(0)
 current = None
 socketio = SocketIO(app)
+
+visible = defaultdict(lambda: True)
+img_w, img_h = 0, 0
+mouseX, mouseY = 0, 0
+mouseClicked = False
+
+def isInBox(mouseCoord, bbox):
+    mouseX, mouseY = mouseCoord
+    bx, by, bw, bh = bbox
+    if mouseX < bx or mouseX >= bx + bw or \
+        mouseY < by or mouseY >= by + bh:
+        return False
+    return True
 
 def gen_frames(res = '1080p', cls = [], conf = 0.6):
 
@@ -49,11 +63,11 @@ def gen_frames(res = '1080p', cls = [], conf = 0.6):
     parser.add_argument("--track_thresh", type=float, default=0.5, help="tracking confidence threshold")
     parser.add_argument("--track_buffer", type=int, default=30, help="the frames for keep lost tracks")
     parser.add_argument("--match_thresh", type=float, default=0.8, help="matching threshold for tracking")
-    parser.add_argument(
-            "--aspect_ratio_thresh", type=float, default=1.6,
-            help="threshold for filtering out boxes of which aspect ratio are above the given value."
-        )
-    parser.add_argument('--min_box_area', type=float, default=10, help='filter out tiny boxes')
+    # parser.add_argument(
+    #         "--aspect_ratio_thresh", type=float, default=1.6,
+    #         help="threshold for filtering out boxes of which aspect ratio are above the given value."
+    #     )
+    parser.add_argument('--min_box_area', type=float, default=0, help='filter out tiny boxes')
     parser.add_argument("--mot20", dest="mot20", default=False, action="store_true", help="test mot20.")
     # ==========================================
     args = parser.parse_args()
@@ -92,6 +106,9 @@ def gen_frames(res = '1080p', cls = [], conf = 0.6):
             img_info['raw_img'] = frame
             img_info["height"] = height
             img_info["width"] = width
+            global img_h, img_w
+            img_h = height
+            img_w = width
             
             timer.tic()
             classIds, scores, faces = model.detect(frame, confThreshold=0, nmsThreshold=0.4)
@@ -106,18 +123,34 @@ def gen_frames(res = '1080p', cls = [], conf = 0.6):
                 online_tlwhs = []
                 online_ids = []
                 online_scores = []
+
+                global mouseClicked, visible, mouseX, mouseY
+                if mouseClicked:
+                    for t in online_targets:
+                        tlwh = t.tlwh
+                        tid = t.track_id
+                        # vertical = tlwh[2] / tlwh[3] > args.aspect_ratio_thresh
+                        # if tlwh[2] * tlwh[3] > args.min_box_area and not vertical:
+                        if tlwh[2] * tlwh[3] > args.min_box_area:
+                            if isInBox((mouseX, mouseY), tlwh):
+                                visible[tid] = (not visible[tid])
+                                break
+
+                    mouseClicked = False
+
                 for t in online_targets:
                     tlwh = t.tlwh
                     tid = t.track_id
-                    vertical = tlwh[2] / tlwh[3] > args.aspect_ratio_thresh
-                    if tlwh[2] * tlwh[3] > args.min_box_area and not vertical:
+                    # vertical = tlwh[2] / tlwh[3] > args.aspect_ratio_thresh
+                    # if tlwh[2] * tlwh[3] > args.min_box_area and not vertical:
+                    if tlwh[2] * tlwh[3] > args.min_box_area:
                         online_tlwhs.append(tlwh)
                         online_ids.append(tid)
                         online_scores.append(t.score)
 
                 timer.toc()
                 frame = plot_tracking(
-                            img_info['raw_img'], online_tlwhs, online_ids, frame_id=frame_id + 1, fps=1. / timer.average_time
+                            img_info['raw_img'], online_tlwhs, online_ids, frame_id=frame_id + 1, fps=1. / timer.average_time, visible=visible
                         )
                 
             else:
@@ -242,6 +275,10 @@ def my_form_post():
 def handle_offset(offset_data):
     print(f'OffsetX: {offset_data["offsetX"]}, OffsetY: {offset_data["offsetY"]}, videoWidth: {offset_data["videoWidth"]}, videoHeight: {offset_data["videoHeight"]}')
     # Perform actions based on the received offset values...
+    global mouseX, mouseY, mouseClicked
+    mouseX = offset_data["offsetX"] / offset_data["videoWidth"] * img_w
+    mouseY = offset_data["offsetY"] / offset_data["videoHeight"] * img_h
+    mouseClicked = True
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',  port='8000', debug=True, threaded=True)
