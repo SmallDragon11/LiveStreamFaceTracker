@@ -1,5 +1,5 @@
 from flask import Flask, Response, render_template, redirect, request, session
-import cv2, sys, os
+import cv2, os
 import argparse
 import os
 
@@ -234,42 +234,42 @@ def resolution():
         return render_template('index.html',previous_data=previous_data)
 
 
-@app.route('/detect', methods=['POST'])
-def my_form_post():
-    text = request.form['text']
-    text = str(text.lower())
+# @app.route('/detect', methods=['POST'])
+# def my_form_post():
+#     text = request.form['text']
+#     text = str(text.lower())
 
-    try:
-        session['cls']
-    except:
-        session['cls'] = []
+#     try:
+#         session['cls']
+#     except:
+#         session['cls'] = []
 
-    c = session['cls']
-    if request.form['submit_button'] == 'Add':
-        print('Add:', text, file=sys.stderr)
-        if text not in session['cls']:
-            c.append(text)
-            session['cls'] = c
+#     c = session['cls']
+#     if request.form['submit_button'] == 'Add':
+#         print('Add:', text, file=sys.stderr)
+#         if text not in session['cls']:
+#             c.append(text)
+#             session['cls'] = c
         
             
-    elif request.form['submit_button'] == 'Remove':
-        print('Reomve:', text, file=sys.stderr)
-        if text in session['cls']:
-            c.remove(text)
-            session['cls'] = c
+#     elif request.form['submit_button'] == 'Remove':
+#         print('Reomve:', text, file=sys.stderr)
+#         if text in session['cls']:
+#             c.remove(text)
+#             session['cls'] = c
 
-    elif request.form['submit_button'] == 'submit':
-        session['conf'] = float(text)
-        print("session['conf']:", session['conf'], file=sys.stderr)
+#     elif request.form['submit_button'] == 'submit':
+#         session['conf'] = float(text)
+#         print("session['conf']:", session['conf'], file=sys.stderr)
 
-    print("session['cls']:", session['cls'], file=sys.stderr)
+#     print("session['cls']:", session['cls'], file=sys.stderr)
     
     
-    try:
-        previous_data = {"selected_item":session['resolution'] }  
-    except:
-        previous_data = {"selected_item":"1080p" }  
-    return render_template('index.html', previous_data=previous_data)
+#     try:
+#         previous_data = {"selected_item":session['resolution'] }  
+#     except:
+#         previous_data = {"selected_item":"1080p" }  
+#     return render_template('index.html', previous_data=previous_data)
 
 @socketio.on('send_offset_to_server')
 def handle_offset(offset_data):
