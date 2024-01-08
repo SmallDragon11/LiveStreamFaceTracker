@@ -1,3 +1,8 @@
+<head>
+    <meta charset="utf-8"> 
+    <title>VST HW4</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+</head>
 <body>
     <div class="container">
         <div class="row">
@@ -31,10 +36,30 @@
                     <input name="text">
                     <input type="submit" value="submit" name="submit_button" />
                 </form>
-
-                <img src="{{ '/video_feed' }}" width="70%">
+                <img class="video_block" src="{{ '/video_feed' }}" width="70%">
             </div>
         </div>
     </div>
+    <script>
+        const block = document.getElementsByClassName("video_block")[0];
+        const socket = io();
+        function sendMousePosOffset(event) {
+            // console.log( "offsetX: " + event.offsetX + ", offsetY: " + event.offsetY + ", videoWidth: " + block.clientWidth + ", videoHeight: " + block.clientHeight);
+            const offsetX = event.offsetX;
+            const offsetY = event.offsetY;
+            const videoWidth = block.clientWidth;
+            const videoHeight = block.clientHeight;
+            // Create an object with offsetX and offsetY
+            const data = {
+                offsetX: offsetX,
+                offsetY: offsetY,
+                videoWidth: videoWidth,
+                videoHeight: videoHeight
+            };
+            // Emit the data to Flask server via SocketIO
+            socket.emit('send_offset_to_server', data);
+        }        
+        block.addEventListener("click", sendMousePosOffset, { once: false });
+    </script>
 </body>
     

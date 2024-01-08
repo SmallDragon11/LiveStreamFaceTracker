@@ -15,13 +15,15 @@ from yolox.tracker.byte_tracker import BYTETracker
 from yolox.utils.visualize import plot_tracking
 from yolox.tracking_utils.timer import Timer
 ##########smallJames###########
+from flask_socketio import SocketIO
 
 
 #Initialize the Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 camera = cv2.VideoCapture(0)
-curent = None
+current = None
+socketio = SocketIO(app)
 
 def gen_frames(res = '1080p', cls = [], conf = 0.6):
 
@@ -236,89 +238,11 @@ def my_form_post():
         previous_data = {"selected_item":"1080p" }  
     return render_template('index.html', previous_data=previous_data)
 
+@socketio.on('send_offset_to_server')
+def handle_offset(offset_data):
+    print(f'OffsetX: {offset_data["offsetX"]}, OffsetY: {offset_data["offsetY"]}, videoWidth: {offset_data["videoWidth"]}, videoHeight: {offset_data["videoHeight"]}')
+    # Perform actions based on the received offset values...
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0',  port='8000', debug=True, threaded=True)
-
-
-'''
-    "person",
-    "bicycle",
-    "car",
-    "motorcycle",
-    "airplane",
-    "bus",
-    "train",
-    "truck",
-    "boat",
-    "traffic light",
-    "fire hydrant",
-    "stop sign",
-    "parking meter",
-    "bench",
-    "bird",
-    "cat",
-    "dog",
-    "horse",
-    "sheep",
-    "cow",
-    "elephant",
-    "bear",
-    "zebra",
-    "giraffe",
-    "backpack",
-    "umbrella",
-    "handbag",
-    "tie",
-    "suitcase",
-    "frisbee",
-    "skis",
-    "snowboard",
-    "sports ball",
-    "kite",
-    "baseball bat",
-    "baseball glove",
-    "skateboard",
-    "surfboard",
-    "tennis racket",
-    "bottle",
-    "wine glass",
-    "cup",
-    "fork",
-    "knife",
-    "spoon",
-    "bowl",
-    "banana",
-    "apple",
-    "sandwich",
-    "orange",
-    "broccoli",
-    "carrot",
-    "hot dog",
-    "pizza",
-    "donut",
-    "cake",
-    "chair",
-    "couch",
-    "potted plant",
-    "bed",
-    "dining table",
-    "toilet",
-    "tv",
-    "laptop",
-    "mouse",
-    "remote",
-    "keyboard",
-    "cell phone",
-    "microwave",
-    "oven",
-    "toaster",
-    "sink",
-    "refrigerator",
-    "book",
-    "clock",
-    "vase",
-    "scissors",
-    "teddy bear",
-    "hair drier",
-    "toothbrush",
-'''
+    socketio.run(app, debug=True)
